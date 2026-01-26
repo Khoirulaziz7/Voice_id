@@ -1,6 +1,6 @@
 # =========================================
-# ADAM ULTRA REALISTIC VOICE
-# Human Pause + Breathing + Smart Rhythm
+# ADAM VOICE – FINAL CLEAN STABLE VERSION
+# Human Pause • Breathing • Anti Error
 # =========================================
 
 import streamlit as st
@@ -8,8 +8,8 @@ import edge_tts
 import asyncio
 import tempfile
 import os
-import random
 import re
+import random
 import time
 
 
@@ -19,108 +19,77 @@ import time
 
 VOICE = "id-ID-ArdiNeural"
 
-BASE_RATE = -9     # tempo santai
-BASE_PITCH = -5    # deep maskulin
+RATE = "-9%"      # santai natural
+PITCH = "-5Hz"    # deep maskulin
 VOLUME = "+0%"
 
 
 # =========================================
-# PAGE
+# PAGE CONFIG
 # =========================================
 
 st.set_page_config(
-    page_title="Adam Ultra Realistic Voice",
+    page_title="Adam Voice Indonesia",
     page_icon="🎙️",
     layout="centered"
 )
 
-st.title("🎙️ Adam Voice – Ultra Realistic Mode")
-st.caption("Deep • Natural • Breathing • Podcast • Human-like")
+st.title("🎙️ Adam Voice Indonesia")
+st.caption("Deep • Natural • Podcast • Human-like (Ultra Smooth)")
 
 
 # =========================================
-# HUMANIZER ENGINE (MAGIC DISINI)
+# HUMANIZER ENGINE (NO MULTI REQUEST)
 # =========================================
 
 def humanize_text(text: str):
     """
-    Bikin suara kayak manusia:
-    - jeda koma
-    - jeda titik
-    - jeda paragraf
-    - napas random
-    - ritme alami
+    Auto jeda + napas manusia TANPA bikin banyak request
+    100% stabil untuk edge-tts
     """
 
     text = re.sub(r"\s+", " ", text.strip())
 
-    # jeda dasar
+    # jeda alami
     text = text.replace(",", ", ... ")
     text = text.replace(".", ". ..... ")
+    text = text.replace("?", "? ..... ")
+    text = text.replace("!", "! ..... ")
     text = text.replace("\n", " ......... ")
 
+    # napas random tiap 12-18 kata
     words = text.split()
     result = []
 
     for i, w in enumerate(words):
         result.append(w)
 
-        # napas random tiap 10–18 kata
-        if i > 5 and i % random.randint(10, 18) == 0:
+        if i > 6 and i % random.randint(12, 18) == 0:
             result.append("...")
 
     return " ".join(result)
 
 
-def dynamic_rate(sentence):
-    """
-    Variasi tempo biar tidak flat
-    """
-    variation = random.randint(-2, 2)
-    return f"{BASE_RATE + variation}%"
-
-
 # =========================================
-# TTS FUNCTION PER SENTENCE (BIAR LEBIH HIDUP)
+# TTS SINGLE REQUEST (ANTI ERROR)
 # =========================================
 
 async def generate(text):
 
-    sentences = re.split(r'(?<=[.!?]) +', text)
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
+    temp.close()
 
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
-    temp_file.close()
+    communicate = edge_tts.Communicate(
+        text=text,          # 🔥 kirim SEKALI saja
+        voice=VOICE,
+        rate=RATE,
+        pitch=PITCH,
+        volume=VOLUME
+    )
 
-    with open(temp_file.name, "wb") as final_audio:
+    await communicate.save(temp.name)
 
-        for sentence in sentences:
-
-            if not sentence.strip():
-                continue
-
-            rate = dynamic_rate(sentence)
-
-            pitch = f"{BASE_PITCH}Hz"
-
-            communicate = edge_tts.Communicate(
-                text=sentence,
-                voice=VOICE,
-                rate=rate,
-                pitch=pitch,
-                volume=VOLUME
-            )
-
-            part_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
-            part_file.close()
-
-            await communicate.save(part_file.name)
-
-            with open(part_file.name, "rb") as pf:
-                final_audio.write(pf.read())
-
-            os.remove(part_file.name)
-
-    return temp_file.name
+    return temp.name
 
 
 # =========================================
@@ -139,29 +108,29 @@ if text:
     st.caption(f"{len(text)} karakter")
 
 
-if st.button("🎙️ Generate Adam Ultra Realistic", use_container_width=True):
+if st.button("🎙️ Generate Adam Voice", use_container_width=True):
 
     if not text:
         st.warning("Masukkan teks dulu")
         st.stop()
 
-    with st.spinner("Generating ultra realistic voice..."):
+    with st.spinner("Generating natural voice..."):
 
-        processed = humanize_text(text)
+        processed_text = humanize_text(text)
 
-        file_path = asyncio.run(generate(processed))
+        file_path = asyncio.run(generate(processed_text))
 
         with open(file_path, "rb") as f:
-            audio = f.read()
+            audio_bytes = f.read()
 
-        st.success("Selesai! Suara sangat natural 🎧")
+        st.success("Selesai! Suara natural siap dipakai 🎧")
 
-        st.audio(audio)
+        st.audio(audio_bytes)
 
         st.download_button(
             "⬇️ Download MP3",
-            audio,
-            file_name=f"adam_ultra_{int(time.time())}.mp3",
+            audio_bytes,
+            file_name=f"adam_voice_{int(time.time())}.mp3",
             mime="audio/mp3",
             use_container_width=True
         )
@@ -176,15 +145,15 @@ if st.button("🎙️ Generate Adam Ultra Realistic", use_container_width=True):
 st.markdown("---")
 
 st.info("""
-🔥 Ultra Realistic aktif:
-✅ Auto pause
-✅ Napas manusia
-✅ Variasi tempo
+🔥 Adam Ultra Realistic aktif:
+✅ Auto jeda manusia
+✅ Auto napas
 ✅ Tidak robotik
-✅ Podcast vibe
+✅ 1x request (anti error edge-tts)
+✅ Podcast / Narator vibe
 
-Setting:
+Setting tetap:
 Voice : Ardi Neural
-Rate  : sekitar -9% (dinamis)
+Rate  : -9%
 Pitch : -5Hz
 """)
